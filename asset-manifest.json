@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/viso/static/css/main.4c3e9fc5.css",
+    "main.js": "/viso/static/js/main.07526f11.js",
+    "index.html": "/viso/index.html",
+    "main.4c3e9fc5.css.map": "/viso/static/css/main.4c3e9fc5.css.map",
+    "main.07526f11.js.map": "/viso/static/js/main.07526f11.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.4c3e9fc5.css",
+    "static/js/main.07526f11.js"
+  ]
+}
