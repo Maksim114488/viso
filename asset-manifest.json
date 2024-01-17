@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/viso/static/css/main.4c3e9fc5.css",
-    "main.js": "/viso/static/js/main.07526f11.js",
+    "main.css": "/viso/static/css/main.401fd2a6.css",
+    "main.js": "/viso/static/js/main.0a81bb11.js",
     "index.html": "/viso/index.html",
-    "main.4c3e9fc5.css.map": "/viso/static/css/main.4c3e9fc5.css.map",
-    "main.07526f11.js.map": "/viso/static/js/main.07526f11.js.map"
+    "main.401fd2a6.css.map": "/viso/static/css/main.401fd2a6.css.map",
+    "main.0a81bb11.js.map": "/viso/static/js/main.0a81bb11.js.map"
   },
   "entrypoints": [
-    "static/css/main.4c3e9fc5.css",
-    "static/js/main.07526f11.js"
+    "static/css/main.401fd2a6.css",
+    "static/js/main.0a81bb11.js"
   ]
 }
