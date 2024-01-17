@@ -3,4 +3,5 @@ export type MarkerType = {
   lng: number
   timestamp: string
   next: number
+  id: string
 }

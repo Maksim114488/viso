@@ -1,6 +1,7 @@
 "use client";
 import './App.css';
 import React, { useEffect, useState } from 'react';
+import uuid from 'short-uuid';
 
 import {
   APIProvider,
@@ -9,66 +10,62 @@ import {
   Pin,
   InfoWindow,
 } from '@vis.gl/react-google-maps';
-import { MarkerType } from './types/MarkerType';
+import { 
+  getFirestore, 
+  collection, 
+  getDocs, 
+  deleteDoc, 
+  DocumentData, 
+  setDoc, 
+  doc,
+} from "firebase/firestore";
 import './firebaseConfig.ts';
-import { getFirestore, addDoc, collection, getDocs, deleteDoc } from "firebase/firestore"
+import { MapMouseEvent } from '@vis.gl/react-google-maps/dist/components/map/use-map-events';
+import { MarkerType } from './types/MarkerType';
+import { Loader } from './Loader.tsx';
 
 const GOOGLE_API = "AIzaSyCYnXn1uFY_OLyri8Q_K8tMj_oNZG37yys";
 const GOOGLE_MAP_ID = "da4bbfff79c393b5";
 
 
 export const App = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [markers, setMarkers] = useState<MarkerType[]>([]);
   const [open, setOpen] = useState<number>(0);
+  const [isClickable, setIsClickable] = useState(true);
   const visoPosition = { lat: 49.81618897502661, lng: 23.995120717288337 };
   const db = getFirestore();
 
-  const handleMapClick = (event) => {
-    const newMarker: MarkerType = {
-      lat: event.detail.latLng.lat,
-      lng: event.detail.latLng.lng,
-      timestamp: new Date().getTime().toString(),
-      next: markers.length + 1,
+  const handleMapClick = (event: MapMouseEvent) => {
+    if (!isClickable) return;
+    if (event.detail.latLng) {
+      const newMarker: MarkerType = {
+        lat: event.detail.latLng.lat,
+        lng: event.detail.latLng.lng,
+        timestamp: new Date().getTime().toString(),
+        next: markers.length + 1,
+        id: uuid.generate(),
+      }
+
+      setMarkers(current => [...current, newMarker]);
+      saveItemToFirestore(newMarker);
     }
-    setMarkers(current => [...current, newMarker]);
-    saveItemToFirestore(newMarker);
   };
 
-  const handleDragEnd = (e, id) => {
+  const handleDragEnd = (e: google.maps.MapMouseEvent, id: number) => {
     const markerToUpdate = markers.find(mark => mark.next === id);
-    if (markerToUpdate) {
+
+    if (markerToUpdate && e.latLng) {
       markerToUpdate.lat = e.latLng.lat();
       markerToUpdate.lng = e.latLng.lng();
+      saveItemToFirestore(markerToUpdate);
     }
-    saveItemToFirestore(markerToUpdate);
+    setIsClickable(true);
   };
 
-  const saveItemToFirestore = async (item) => {
-    const collectionRef = collection(db, 'markers');
-    await addDoc(collectionRef, item);
+  const saveItemToFirestore = async (item: MarkerType) => {
+    await setDoc(doc(db, 'markers', item.id), item, {merge: true});
     console.log('Array saved to Firestore');
-  };
-
-  const loadDataFromFirestore = async () => {
-    const collectionRef = collection(db, 'markers');
-
-    try {
-      const querySnapshot = await getDocs(collectionRef);
-
-      const dataArray = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        dataArray.push(data);
-      });
-
-      setMarkers(dataArray)
-
-      console.log('Data loaded from Firestore:', dataArray);
-      return dataArray;
-    } catch (error) {
-      console.error('Error loading data from Firestore:', error);
-      throw error;
-    }
   };
 
   const clearCollection = async () => {
@@ -77,13 +74,38 @@ export const App = () => {
     try {
       const querySnapshot = await getDocs(collectionRef);
 
-      querySnapshot.forEach(async (doc) => {
+      setIsLoading(true);
+      await Promise.all(querySnapshot.docs.map(async (doc) => {
         await deleteDoc(doc.ref);
-      });
+      }))
+      setIsLoading(false);
 
       console.log("Collection markers cleared successfully.");
     } catch (error) {
       console.error("Error clearing collection markers:", error);
+      throw error;
+    } 
+    loadDataFromFirestore();
+  };
+
+  const loadDataFromFirestore = async () => {
+    const collectionRef = collection(db, 'markers');
+
+    try {
+      const querySnapshot = await getDocs(collectionRef);
+      console.log(querySnapshot);
+      const dataArray: DocumentData[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        dataArray.push(data);
+      });
+
+      setMarkers(dataArray as MarkerType[])
+
+      console.log('Data loaded from Firestore:', dataArray);
+      return dataArray;
+    } catch (error) {
+      console.error('Error loading data from Firestore:', error);
       throw error;
     }
   };
@@ -109,6 +131,8 @@ export const App = () => {
             Clear all markers
           </button>
 
+          {isLoading && (<Loader />)}
+
           {markers.length && markers.map(mark => {
             if (open === mark.next) {
               return (
@@ -126,9 +150,9 @@ export const App = () => {
                   key={mark.timestamp}
                   position={mark}
                   draggable={true}
-                  onDragStart={() => console.log(markers.length)}
-                  onDragEnd={event => handleDragEnd(event, mark.next)}
-                  onClick={() => setOpen(mark.next)}
+                  onDragStart={() => setIsClickable(false)}
+                  onDragEnd={(event) => handleDragEnd(event, mark.next)}
+                  onClick={event => setOpen(mark.next)}
                 >
                   <Pin
                     glyph={mark.next.toString()}
